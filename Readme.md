@@ -1,6 +1,6 @@
 # 🍰 – Effects for Lua
 
-Cake is a simple library which for using one-shot effects in lua.
+Cake is a simple library for using one-shot effects in lua.
 
 ```lua
 local cake = require"cake"
