@@ -183,22 +183,49 @@ This is useful if you need to prevent effects from blocking till resolved:
 
 ```lua
 local cake = require"cake"
-local delay = require"delay"
-    -- wait(seconds) blocks until `seconds` have elapsed
+local copas = require"copas"
+
+local Delay = cake.effects "Delay" {_wait = true, cancel = true}
+
+function Delay.wait(sec) return Delay._wait( sec, (coroutine.running()) ) end
+
+local waiting = {}
+local function handler(effect, cont, abort) 
+    if effect ~ Delay._wait then 
+        local sec, thread = effect:args()
+        local t = copas.timer.new {delay = sec, callback = function(cont) return cont(true) end, params = cont}
+        waiting[thread] = {t, abort}
+        return cake.wait, thread -- returned by the .perform call
+    elseif effect ~ Delay.cancel then 
+        local thread = effect:args()
+        if waiting[thread] then 
+            local t, abort = table.unpack(waiting[thread])
+            waiting[thread] = nil
+            t:cancel()
+            abort(true)
+            return true 
+        else 
+            return false 
+        end
+    end
+end
 
 local function main()
     local thread = cake.perform(function() -- inherits our handler
-        delay.wait(5.0)
+        coroutine.yield(Delay.wait(5.0))
         print("5 seconds elapsed")
     end)
 
-    delay.wait(3.0)
+    coroutine.yield(Delay.wait(3.0))
     print("Waited 3 seconds instead!")
-    delay.cancel(thread)
+    coroutine.yield(Delay.cancel(thread))
 end
 
-cake.start(delay.impl, main)
+cake.start(handler, main)
+copas()
 ```
+
+
 
 #### Notes on handling effects
 
@@ -206,7 +233,7 @@ When handling effects using `cake.wait` you must take care with how you use the 
 
 This may cause a problem when passing the `cont` "function" into a system callback directly, for example into an event loop written in C. I apologize for this inconvenience.
 
-Value propagation can get confusing when using `cake.wait`, because control has to switch contexts so frequently. I recommend creating some simple effects and observing how the values are returned at various points (i.e what is returned from `cont` after you've `cake.wait`-ed? What about synchronous `abort` and `cont`!?).
+Value propagation can get confusing when using `cake.wait`, because control has to switch contexts so frequently. I recommend creating some simple effects and observing how the values are returned at various points (i.e what is returned from `cont` after you've `cake.wait`-ed? What about synchronous `abort`).
 
 If you decide to call `cont` while control is still held by the handler the computation
 is processed normally so that a value can be returned for cont and whatever you return from the handler is therefore ignored. You cannot call `cont` multiple times synchronously because the computation was completed by the first call.
