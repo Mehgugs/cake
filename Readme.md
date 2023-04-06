@@ -157,7 +157,7 @@ If this function returns nothing then effect resolution is passed on to an outer
         --- the run call returns "aborted"
 ```
 
-When a nested effect is aborted, the inner computation is affected, not its parent:
+When a nested effect is aborted the inner computation is affected, not its parent:
 ```lua
 local x, y
 x = cake.run(handler, function()
