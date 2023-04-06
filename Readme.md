@@ -145,7 +145,7 @@ but if you want to respond asynchronously you must return the `wait` sentinel va
 If you return additional arguments after `cake.wait`, they will be propagated to the place where control resumes if possible, for example if you `return cake.wait, "foo"` for `MyAsyncEffect` then `cake.perform` will return `"foo"` when `MyAsyncEffect` is handled.
 If this function returns nothing then effect resolution is passed on to an outer coroutine. The abort function can be used to cancel the effectful computation:
 ```lua
-    local MyEffect = cake.atoms.Test
+    local MyEffect = cake.simple.MyEffect
 
     local function handler(effect, _, abort)
         if effect ~ MyEffect then
